@@ -4,7 +4,9 @@ const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
 const session = require("express-session");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
+
 const PORT = process.env.PORT || 7000;
+
 // Initialize Express app
 const app = express();
 app.use(express.json());
@@ -12,15 +14,20 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.set("view engine", "ejs");
 
 // MongoDB connection
-mongoose.connect(process.env.MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
+mongoose
+  .connect(process.env.MONGODB_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+    // Add strictQuery setting if needed
+    // strictQuery: false
+  })
+  .then(() => console.log("MongoDB connected successfully"))
+  .catch((err) => console.error("MongoDB connection error:", err));
 
 // Use session middleware
 app.use(
   session({
-    secret: "your-secret-key", // Replace with a secure key
+    secret: process.env.SESSION_SECRET || "your-secret-key", // Use environment variable for secret
     resave: false,
     saveUninitialized: true,
     cookie: { maxAge: 60000 * 30 }, // 30 minutes session expiration
@@ -51,7 +58,7 @@ const generateResponse = async (conversation) => {
     const result = await model.generateContent(conversation.join("\n"));
     return result.response.text();
   } catch (err) {
-    console.error(err);
+    console.error("Error generating content:", err);
     throw new Error("Failed to generate content");
   }
 };
