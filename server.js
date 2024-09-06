@@ -4,7 +4,7 @@ const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
 const session = require("express-session");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
-
+const PORT = process.env.PORT || 7000;
 // Initialize Express app
 const app = express();
 app.use(express.json());
@@ -114,6 +114,6 @@ app.post("/api/chat", async (req, res) => {
 });
 
 // Start the server
-app.listen(7000, () => {
-  console.log("Server is running on port 7000");
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
 });
