@@ -3,6 +3,8 @@ const express = require("express");
 const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
 const session = require("express-session");
+const methodOverride = require("method-override");
+const path = require("path");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 const PORT = process.env.PORT || 7000;
@@ -11,15 +13,16 @@ const PORT = process.env.PORT || 7000;
 const app = express();
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(methodOverride("_method"));
+
 app.set("view engine", "ejs");
+app.set("views", path.join(__dirname, "views"));
 
 // MongoDB connection
 mongoose
   .connect(process.env.MONGODB_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
-    // Add strictQuery setting if needed
-    // strictQuery: false
   })
   .then(() => console.log("MongoDB connected successfully"))
   .catch((err) => console.error("MongoDB connection error:", err));
@@ -27,10 +30,10 @@ mongoose
 // Use session middleware
 app.use(
   session({
-    secret: process.env.SESSION_SECRET || "your-secret-key", // Use environment variable for secret
+    secret: process.env.SESSION_SECRET || "your-secret-key",
     resave: false,
     saveUninitialized: true,
-    cookie: { maxAge: 60000 * 30 }, // 30 minutes session expiration
+    cookie: { maxAge: 60000 * 30 },
   })
 );
 
