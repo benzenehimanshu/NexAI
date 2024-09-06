@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NexAI - Chat with AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Slider specific styles */
+        .slider {
+            -webkit-appearance: none;
+            width: 50px;
+            height: 24px;
+            background: #ccc;
+            border-radius: 12px;
+            position: relative;
+            cursor: pointer;
+            outline: none;
+        }
+        .slider::before {
+            content: '';
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            background: #fff;
+            border-radius: 50%;
+            top: 1px;
+            left: 1px;
+            transition: 0.3s;
+        }
+        .slider.active::before {
+            left: 27px;
+        }
+
+        /* Dark mode specific styles */
+        body.dark {
+            background-color: black;
+            color: white;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        body.light {
+            background-color: white;
+            color: black;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        /* Chat message styles for dark and light mode */
+        .message-dark {
+            background-color: #333;
+            color: white;
+        }
+        .message-light {
+            background-color: #f1f1f1;
+            color: black;
+        }
+
+        /* Sliding panel styles */
+        .contact-panel {
+            position: fixed;
+            top: 0;
+            left: -300px;
+            width: 300px;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            transition: transform 0.3s ease;
+            z-index: 1000;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .contact-panel.active {
+            transform: translateX(300px);
+        }
+        .close-panel {
+            cursor: pointer;
+            color: #ff0000;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        .contact-panel h2 {
+            margin-bottom: 20px;
+        }
+        .contact-panel .social-icons {
+            display: flex;
+            gap: 20px;
+        }
+        .contact-panel .social-icons a {
+            font-size: 24px;
+            color: #fff;
+            transition: color 0.3s;
+        }
+        .contact-panel .social-icons a:hover {
+            color: #ccc;
+        }
+
+        /* Hamburger icon color */
+        .hamburger-icon {
+            font-size: 24px;
+            transition: color 0.3s;
+        }
+        .dark .hamburger-icon {
+            color: white;
+        }
+        .light .hamburger-icon {
+            color: black;
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body class="bg-black text-white h-screen flex justify-center items-center transition-colors duration-300 dark">
+    <!-- Hamburger Menu Icon -->
+    <div class="absolute top-4 left-4">
+        <button id="menu-toggle" class="hamburger-icon text-xl">☰</button>
+    </div>
+
+    <!-- Theme Toggle Switch -->
+    <div class="absolute top-4 right-4 flex items-center">
+        <input type="checkbox" id="theme-toggle" class="hidden" />
+        <label for="theme-toggle" class="slider" id="slider-toggle"></label>
+    </div>
+
+    <!-- Contact Panel -->
+    <div id="contact-panel" class="contact-panel">
+    <span class="close-panel" id="close-panel">✖</span>
+    <h2 class="text-2xl font-semibold mb-4">Let’s Connect</h2>
+    <p class="text-center text-lg mb-6">Hi, I'm Himanshu. Feel free to connect with me.</p>
+    <div class="flex justify-center gap-6 mb-6">
+        <a href="https://www.linkedin.com/in/himanshu-kumar-176464272/" target="_blank" class="social-icon" aria-label="LinkedIn">
+            <i class="fab fa-linkedin fa-2x" style="color: #0077b5;"></i>
+        </a>
+        <a href="https://www.instagram.com/mrwhosetheguy" target="_blank" class="social-icon" aria-label="Instagram">
+            <i class="fab fa-instagram fa-2x" style="color: #e4405f;"></i>
+        </a>
+    </div>
+    <p class="footer-note text-center text-sm text-gray-300">Product by Himanshu Kumar</p>
+</div>
+
+    <div class="w-full max-w-2xl mx-auto bg-black rounded-lg shadow-lg flex flex-col h-5/6 overflow-hidden" id="chat-container">
+        <button id="toggle" class="bg-black text-white py-2 px-4 rounded-lg mb-4 mx-auto">
+            Talk Now 🡥
+        </button>
+        <h1 class="text-5xl font-bold text-center bg-clip-text text-transparent bg-gradient-to-r from-pink-500 to-blue-500 py-4">
+            NexAI
+        </h1>
+        <div id="messages" class="flex-1 overflow-y-auto p-4 flex flex-col gap-3 relative">
+            <!-- Messages will be appended here -->
+            <div id="scroll-arrow" class="hidden absolute bottom-4 right-4 text-2xl cursor-pointer animate-bounce">⬇️</div>
+        </div>
+        <form id="chat-form" class="hidden p-4 bg-black border-t border-gray-800 flex">
+            <input type="text" id="message" placeholder="Ask NexAI..." required class="flex-1 bg-black rounded-lg text-white placeholder-gray-500 p-3 mr-2">
+            <button type="submit" class="bg-gray-600 hover:bg-gray-700 text-white rounded-lg px-4">Send</button>
+        </form>
+    </div>
+
+    <script>
+        const toggleButton = document.getElementById('toggle');
+        const chatForm = document.getElementById('chat-form');
+        const messagesDiv = document.getElementById('messages');
+        const scrollArrow = document.getElementById('scroll-arrow');
+        const menuToggle = document.getElementById('menu-toggle');
+        const contactPanel = document.getElementById('contact-panel');
+        const closePanel = document.getElementById('close-panel');
+        const themeToggle = document.getElementById('theme-toggle');
+        const sliderToggle = document.getElementById('slider-toggle');
+        const chatContainer = document.getElementById('chat-container');
+
+        // Variable to track the current theme mode
+        let currentThemeMode = document.body.classList.contains('dark') ? 'dark' : 'light';
+
+        // Load saved messages from localStorage
+        function loadMessages() {
+            const savedMessages = JSON.parse(localStorage.getItem('chatMessages')) || [];
+            savedMessages.forEach(({ message, sender, timestamp }) => {
+                const messageDiv = document.createElement('div');
+                messageDiv.classList.add('message', currentThemeMode === 'dark' ? 'message-dark' : 'message-light', sender === 'user' ? 'self-end' : 'self-start', 'max-w-[80%]', 'rounded-lg', 'p-4');
+                messageDiv.innerHTML = `${message}<div class="text-xs text-gray-500 mt-1">${new Date(timestamp).toLocaleString()}</div>`;
+                messagesDiv.appendChild(messageDiv);
+            });
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        // Save messages to localStorage
+        function saveMessage(message, sender) {
+            const savedMessages = JSON.parse(localStorage.getItem('chatMessages')) || [];
+            savedMessages.push({ message, sender, timestamp: new Date().toISOString() });
+            localStorage.setItem('chatMessages', JSON.stringify(savedMessages));
+        }
+
+        // Toggle chat visibility
+        toggleButton.addEventListener('click', () => {
+            chatForm.classList.remove('hidden');
+            toggleButton.classList.add('hidden');
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        });
+
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const messageInput = document.getElementById('message');
+            const userMessage = messageInput.value;
+
+            // Save user message
+            saveMessage(userMessage, 'user');
+
+            // Create and display user message element
+            const userMessageDiv = document.createElement('div');
+            userMessageDiv.classList.add('message', currentThemeMode === 'dark' ? 'message-dark' : 'message-light', 'self-end', 'max-w-[80%]', 'rounded-lg', 'p-4');
+            userMessageDiv.innerHTML = `${userMessage}<div class="text-xs text-gray-500 mt-1">${new Date().toLocaleString()}</div>`;
+            messagesDiv.appendChild(userMessageDiv);
+            messageInput.value = '';
+
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({ message: userMessage }),
+                });
+                const data = await response.json();
+
+                // Save AI response message
+                saveMessage(data.response, 'ai');
+
+                // Create and display AI response message element
+                const aiMessageDiv = document.createElement('div');
+                aiMessageDiv.classList.add('message', currentThemeMode === 'dark' ? 'message-dark' : 'message-light', 'self-start', 'max-w-[80%]', 'rounded-lg', 'p-4');
+                aiMessageDiv.innerHTML = `<strong>NexAI:</strong> ${data.response}<div class="text-xs text-gray-500 mt-1">${new Date().toLocaleString()}</div>`;
+                messagesDiv.appendChild(aiMessageDiv);
+                
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            } catch (error) {
+                console.error('Error fetching NexAI response:', error);
+            }
+
+            if (messagesDiv.scrollHeight > messagesDiv.clientHeight) {
+                scrollArrow.classList.remove('hidden');
+            } else {
+                scrollArrow.classList.add('hidden');
+            }
+        });
+
+        scrollArrow.addEventListener('click', () => {
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            scrollArrow.classList.add('hidden');
+        });
+
+        // Show contact panel
+        menuToggle.addEventListener('click', () => {
+            contactPanel.classList.toggle('active');
+            contactPanel.style.transform = contactPanel.classList.contains('active') ? 'translateX(300px)' : 'translateX(-100%)';
+        });
+
+        // Close contact panel when clicking outside
+        closePanel.addEventListener('click', () => {
+            contactPanel.classList.remove('active');
+            contactPanel.style.transform = 'translateX(-100%)';
+        });
+
+        // Theme toggle functionality
+        sliderToggle.addEventListener('click', () => {
+            document.body.classList.toggle('dark');
+            document.body.classList.toggle('light');
+            sliderToggle.classList.toggle('active');
+
+            // Update the current theme mode
+            currentThemeMode = document.body.classList.contains('dark') ? 'dark' : 'light';
+
+            // Change chat background and message bubble colors based on theme
+            const isDarkMode = document.body.classList.contains('dark');
+            chatContainer.classList.toggle('bg-black', isDarkMode);
+            chatContainer.classList.toggle('bg-white', !isDarkMode);
+
+            const messageDivs = document.querySelectorAll('.message');
+            messageDivs.forEach((messageDiv) => {
+                if (isDarkMode) {
+                    messageDiv.classList.remove('message-light');
+                    messageDiv.classList.add('message-dark');
+                } else {
+                    messageDiv.classList.remove('message-dark');
+                    messageDiv.classList.add('message-light');
+                }
+            });
+
+            // Update form and input colors
+            chatForm.classList.toggle('bg-black', isDarkMode);
+            chatForm.classList.toggle('bg-white', !isDarkMode);
+            chatForm.querySelector('#message').classList.toggle('bg-black', isDarkMode);
+            chatForm.querySelector('#message').classList.toggle('bg-white', !isDarkMode);
+            chatForm.querySelector('#message').classList.toggle('text-white', isDarkMode);
+            chatForm.querySelector('#message').classList.toggle('text-black', !isDarkMode);
+        });
+
+        // Load messages when the page loads
+        loadMessages();
+    </script>
+</body>
+</html>
