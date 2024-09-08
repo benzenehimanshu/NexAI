@@ -95,16 +95,22 @@ app.post("/api/chat", async (req, res) => {
   const userMsg = new Message({ user: "User", text: userMessage });
   await userMsg.save();
 
-  // Retrieve the last 10 messages for AI context
-  const previousMessages = await Message.find().sort({ date: 1 }).limit(10);
+  // Retrieve recent messages, filter by relevance (e.g., current topic)
+  const recentMessages = await Message.find().sort({ date: -1 }).limit(10); // Get the last 10 messages
 
-  const conversation = previousMessages
-    .filter((msg) => msg.user === "User")
+  // Filter messages based on current topic (e.g., if the current message is about "Google")
+  const relevantMessages = recentMessages
+    .filter(
+      (msg) =>
+        msg.user === "User" && isRelevantToCurrentTopic(msg.text, userMessage)
+    )
     .map((msg) => `${msg.user}: ${msg.text}`);
-  conversation.push(`User: ${userMessage}`);
+
+  // Add the current user message to the conversation
+  relevantMessages.push(`User: ${userMessage}`);
 
   try {
-    const aiResponse = await generateResponse(conversation);
+    const aiResponse = await generateResponse(relevantMessages); // Pass only relevant conversation
 
     const sanitizedAIResponse = sanitizeMessage(aiResponse);
 
@@ -122,6 +128,24 @@ app.post("/api/chat", async (req, res) => {
     res.status(500).send("Error: " + err.message);
   }
 });
+
+// Helper functions to filter messages and extract topics
+function isRelevantToCurrentTopic(pastMessage, currentMessage) {
+  // Simple keyword matching (you can enhance this logic)
+  const topicKeywords = extractTopic(currentMessage);
+  return pastMessage.toLowerCase().includes(topicKeywords);
+}
+
+function extractTopic(message) {
+  // Extract the topic from the message (for example, you could use NLP here)
+  // This is a placeholder; enhance it based on your requirements
+  if (message.toLowerCase().includes("google")) {
+    return "Google";
+  } else if (message.toLowerCase().includes("biryani")) {
+    return "biryani";
+  }
+  return "conversation";
+}
 
 // Start the server
 app.listen(PORT, () => {
