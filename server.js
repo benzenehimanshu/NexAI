@@ -5,6 +5,7 @@ const bodyParser = require("body-parser");
 const session = require("express-session");
 const methodOverride = require("method-override");
 const path = require("path");
+
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 const PORT = process.env.PORT || 7000;
@@ -13,6 +14,7 @@ const PORT = process.env.PORT || 7000;
 const app = express();
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: true }));
 app.use(methodOverride("_method"));
 
 app.set("view engine", "ejs");
@@ -23,6 +25,8 @@ mongoose
   .connect(process.env.MONGODB_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
+    // Add strictQuery setting if needed
+    // strictQuery: false
   })
   .then(() => console.log("MongoDB connected successfully"))
   .catch((err) => console.error("MongoDB connection error:", err));
@@ -30,10 +34,10 @@ mongoose
 // Use session middleware
 app.use(
   session({
-    secret: process.env.SESSION_SECRET || "your-secret-key",
+    secret: process.env.SESSION_SECRET || "your-secret-key", // Use environment variable for secret
     resave: false,
     saveUninitialized: true,
-    cookie: { maxAge: 60000 * 30 },
+    cookie: { maxAge: 60000 * 30 }, // 30 minutes session expiration
   })
 );
 
@@ -95,22 +99,11 @@ app.post("/api/chat", async (req, res) => {
   const userMsg = new Message({ user: "User", text: userMessage });
   await userMsg.save();
 
-  // Retrieve recent messages, filter by relevance (e.g., current topic)
-  const recentMessages = await Message.find().sort({ date: -1 }).limit(10); // Get the last 10 messages
-
-  // Filter messages based on current topic (e.g., if the current message is about "Google")
-  const relevantMessages = recentMessages
-    .filter(
-      (msg) =>
-        msg.user === "User" && isRelevantToCurrentTopic(msg.text, userMessage)
-    )
-    .map((msg) => `${msg.user}: ${msg.text}`);
-
-  // Add the current user message to the conversation
-  relevantMessages.push(`User: ${userMessage}`);
+  // Prepare the conversation context
+  const conversation = [`User: ${userMessage}`]; // Only include the latest user message
 
   try {
-    const aiResponse = await generateResponse(relevantMessages); // Pass only relevant conversation
+    const aiResponse = await generateResponse(conversation); // Pass only the latest message
 
     const sanitizedAIResponse = sanitizeMessage(aiResponse);
 
@@ -128,24 +121,6 @@ app.post("/api/chat", async (req, res) => {
     res.status(500).send("Error: " + err.message);
   }
 });
-
-// Helper functions to filter messages and extract topics
-function isRelevantToCurrentTopic(pastMessage, currentMessage) {
-  // Simple keyword matching (you can enhance this logic)
-  const topicKeywords = extractTopic(currentMessage);
-  return pastMessage.toLowerCase().includes(topicKeywords);
-}
-
-function extractTopic(message) {
-  // Extract the topic from the message (for example, you could use NLP here)
-  // This is a placeholder; enhance it based on your requirements
-  if (message.toLowerCase().includes("google")) {
-    return "Google";
-  } else if (message.toLowerCase().includes("biryani")) {
-    return "biryani";
-  }
-  return "conversation";
-}
 
 // Start the server
 app.listen(PORT, () => {
